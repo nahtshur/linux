@@ -541,6 +541,14 @@ enum {
 	ADRV9002_HOP_1_TRIGGER,
 	ADRV9002_HOP_2_TRIGGER,
 	ADRV9002_INIT_CALS_RUN,
+	ADRV9002_MCS
+};
+
+enum {
+	ADRV9002_MCS_INIT,
+	ADRV9002_MCS_READY,
+	ADRV9002_MCS_RUNNING,
+	ADRV9002_MCS_DONE
 };
 
 static const char * const adrv9002_hop_table[ADRV9002_FH_TABLES_NR + 1] = {
@@ -575,6 +583,24 @@ static int adrv9002_fh_table_show(struct adrv9002_rf_phy *phy, char *buf, u64 ad
 	return sysfs_emit(buf, "%s\n", adrv9002_hop_table[table]);
 }
 
+static int adrv9002_mcs_show(struct adrv9002_rf_phy *phy, char *buf)
+{
+	adi_adrv9001_RadioState_t radio;
+	int ret, mcs;
+
+	ret = api_call(phy, adi_adrv9001_Radio_State_Get, &radio);
+	if (ret)
+		return ret;
+
+	if (radio.systemState != ADI_ADRV9001_ARM_SYSTEM_MCS)
+		mcs = ADRV9002_MCS_INIT;
+	else
+		/* we start with the init state, that's why we do +1 */
+		mcs = radio.mcsState + 1;
+
+	return sysfs_emit(buf, "%d\n", mcs);
+}
+
 static const char * const adrv9002_init_cals_modes[] = {
 	"off",
 	"auto",
@@ -591,6 +617,9 @@ static ssize_t adrv9002_attr_show(struct device *dev, struct device_attribute *a
 	mutex_lock(&phy->lock);
 
 	switch (iio_attr->address) {
+	case ADRV9002_MCS:
+		ret = adrv9002_mcs_show(phy, buf);
+		break;
 	case ADRV9002_HOP_1_TABLE_SEL:
 	case ADRV9002_HOP_2_TABLE_SEL:
 		ret = adrv9002_fh_table_show(phy, buf, iio_attr->address);
@@ -736,8 +765,33 @@ static int adrv9002_fh_set(const struct adrv9002_rf_phy *phy, const char *buf, u
 	case ADRV9002_HOP_2_TRIGGER:
 		return api_call(phy, adi_adrv9001_fh_Hop, ADI_ADRV9001_FH_HOP_SIGNAL_2);
 	default:
-		return  -EINVAL;
+		return -EINVAL;
 	}
+}
+
+/*
+ * TODO: It likely makes more sense to drop the mcs_show support and just poll (with timeout) for
+ * mcs is done. Like that, we can make sure to put all the ports in the correct state before
+ * starting the procedure and it makes things way more simple for userspace.
+ */
+static int adrv9002_mcs_set(const struct adrv9002_rf_phy *phy, const char *buf)
+{
+	int ret;
+	u32 mcs;
+
+	if (!phy->curr_profile->sysConfig.mcsMode) {
+		dev_err(&phy->spi->dev, "Multi chip sync not enabled\n");
+		return -ENOTSUPP;
+	}
+
+	ret = kstrtou32(buf, 10, &mcs);
+	if (ret)
+		return ret;
+
+	if (mcs != ADRV9002_MCS_READY)
+		return -EINVAL;
+
+	return api_call(phy, adi_adrv9001_Radio_ToMcsReady);
 }
 
 static ssize_t adrv9002_attr_store(struct device *dev, struct device_attribute *attr,
@@ -752,6 +806,9 @@ static ssize_t adrv9002_attr_store(struct device *dev, struct device_attribute *
 	switch (iio_attr->address) {
 	case ADRV9002_INIT_CALS_RUN:
 		ret = adrv9002_init_cals_set(phy, buf);
+		break;
+	case ADRV9002_MCS:
+		ret = adrv9002_mcs_set(phy, buf);
 		break;
 	default:
 		ret = adrv9002_fh_set(phy, buf, iio_attr->address);
@@ -2475,6 +2532,8 @@ static IIO_DEVICE_ATTR(frequency_hopping_hop2_signal_trigger, 0200, NULL, adrv90
 		       ADRV9002_HOP_2_TRIGGER);
 static IIO_DEVICE_ATTR(initial_calibrations, 0600, adrv9002_attr_show, adrv9002_attr_store,
 		       ADRV9002_INIT_CALS_RUN);
+static IIO_DEVICE_ATTR(multi_chip_sync, 0600, adrv9002_attr_show, adrv9002_attr_store,
+		       ADRV9002_MCS);
 
 static struct attribute *adrv9002_sysfs_attrs[] = {
 	&iio_const_attr_initial_calibrations_available.dev_attr.attr,
@@ -2484,6 +2543,7 @@ static struct attribute *adrv9002_sysfs_attrs[] = {
 	&iio_dev_attr_frequency_hopping_hop1_signal_trigger.dev_attr.attr,
 	&iio_dev_attr_frequency_hopping_hop2_signal_trigger.dev_attr.attr,
 	&iio_dev_attr_initial_calibrations.dev_attr.attr,
+	&iio_dev_attr_multi_chip_sync.dev_attr.attr,
 	NULL
 };
 
@@ -3076,7 +3136,7 @@ static u64 adrv9002_get_init_carrier(const struct adrv9002_chan *c)
 		if (c->port == ADI_RX)
 			return 2400000000ULL;
 
-		return 2450000000ULL;
+		return 2400000000ULL;
 	}
 
 	lo_freq = clk_get_rate_scaled(c->ext_lo->clk, &c->ext_lo->scale);
