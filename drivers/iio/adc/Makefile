@@ -200,7 +200,3 @@ obj-$(CONFIG_XILINX_XADC) += xilinx-xadc.o
 obj-$(CONFIG_XILINX_AMS) += xilinx-ams.o
 obj-$(CONFIG_SD_ADC_MODULATOR) += sd_adc_modulator.o
 obj-$(CONFIG_VERSAL_SYSMON) += versal-sysmon.o
-ad405x-y := ad405x/ad405x_core.o
-
-obj-$(CONFIG_AD405X) += ad405x.o
-obj-$(CONFIG_AD405X_I3C) += ad405x_i3c.o
