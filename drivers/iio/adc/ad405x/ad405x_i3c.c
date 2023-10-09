@@ -18,9 +18,9 @@
 #include "ad405x.h"
 
 static const struct i3c_device_id ad405x_i3c_ids[] = {
-	I3C_DEVICE(0x0177, 0x0070, (void *)AD4053),
-	I3C_DEVICE(0x0177, 0x0071, (void *)AD4054),
-	I3C_DEVICE(0x0177, 0x0072, (void *)AD4055),
+	I3C_DEVICE(0x02ee, 0x0070, (void *)AD4053),
+	I3C_DEVICE(0x02ee, 0x0071, (void *)AD4054),
+	I3C_DEVICE(0x02ee, 0x0072, (void *)AD4055),
 	{ /* sentinel */ },
 };
 MODULE_DEVICE_TABLE(i3c, ad405x_i3c_ids);

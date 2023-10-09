@@ -36,8 +36,8 @@
 		#address-cells = <3>;
 		#size-cells = <0>;
 
-		adc0: adc@0,17700700026 {
-			reg = <0x0 0x177 0x700026>;
+		adc0: adc@0,2ee00700000 {
+			reg = <0x0 0x2ee 0x700000>;
 			dmas = <&rx_dma 0>;
 			dma-names = "rx";
 			pwms = <&adc_trigger 0 0>;
