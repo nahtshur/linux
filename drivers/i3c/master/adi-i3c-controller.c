@@ -35,6 +35,7 @@
 #define REG_IBI_FIFO			0x0e4
 #define REG_FIFO_STATUS			0x0e8
 #define REG_RESET			0x040
+#define REG_OPS				0x100
 #define REG_IBI_CONFIG			0x140
 #define REG_DEVS_CTRL			0x280
 
@@ -81,6 +82,10 @@
 #define DEVS_CTRL_DEV_ACTIVE(dev)	BIT(dev)
 #define DEVS_CTRL_DEVS_ACTIVE_MASK	GENMASK(15, 0)
 
+#define REG_OPS_SET_SG(x)		((x) << 5)
+#define REG_OPS_PP_SG_MASK		GENMASK(6, 5)
+
+enum speed_grade {PP_SG_UNSET, PP_SG_1MHZ, PP_SG_3MHZ, PP_SG_6MHZ, PP_SG_12MHZ};
 struct adi_i3c_cmd {
 	u32 cmd0;
 	u32 cmd1;
@@ -604,6 +609,56 @@ static void adi_i3c_controller_bus_cleanup(struct i3c_master_controller *m)
 	adi_i3c_controller_disable(master);
 }
 
+static void adi_i3c_controller_upd_i3c_scl_lim(struct adi_i3c_controller *controller)
+{
+	struct i3c_master_controller *m = &controller->base;
+	struct i3c_bus *bus = i3c_master_get_bus(m);
+	u8 i3c_scl_lim = 0;
+	struct i3c_dev_desc *dev;
+	u8 pp_sg;
+
+	i3c_bus_for_each_i3cdev(bus, dev) {
+		u8 max_fscl;
+
+		max_fscl = max(I3C_CCC_MAX_SDR_FSCL(dev->info.max_read_ds),
+			       I3C_CCC_MAX_SDR_FSCL(dev->info.max_write_ds));
+		switch (max_fscl) {
+		case I3C_SDR1_FSCL_8MHZ:
+			max_fscl = PP_SG_6MHZ;
+			break;
+		case I3C_SDR2_FSCL_6MHZ:
+			max_fscl = PP_SG_3MHZ;
+			break;
+		case I3C_SDR3_FSCL_4MHZ:
+			max_fscl = PP_SG_3MHZ;
+			break;
+		case I3C_SDR4_FSCL_2MHZ:
+			max_fscl = PP_SG_1MHZ;
+			break;
+		case I3C_SDR0_FSCL_MAX:
+		default:
+			max_fscl = PP_SG_12MHZ;
+			break;
+		}
+
+		if (max_fscl &&
+		    (i3c_scl_lim > max_fscl || !i3c_scl_lim))
+			i3c_scl_lim = max_fscl;
+	}
+
+	if (!i3c_scl_lim)
+		return;
+
+	controller->i3c_scl_lim = i3c_scl_lim-1;
+
+	pp_sg = readl(controller->regs + REG_OPS) &
+		  ~REG_OPS_PP_SG_MASK;
+
+	pp_sg |= REG_OPS_SET_SG(i3c_scl_lim);
+
+	writel(pp_sg, controller->regs + REG_OPS);
+}
+
 static void adi_i3c_controller_dev_char_to_info(struct adi_i3c_controller *controller,
 					   unsigned int slot,
 					   struct i3c_device_info *info)
@@ -679,6 +734,8 @@ static int adi_i3c_controller_do_daa(struct i3c_master_controller *m)
 	       controller->regs + REG_DEVS_CTRL);
 
 	i3c_master_defslvs_locked(&controller->base);
+
+	adi_i3c_controller_upd_i3c_scl_lim(controller);
 
 	return 0;
 }
