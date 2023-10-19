@@ -1657,5 +1657,4 @@ config VERSAL_SYSMON
 
 	  The driver can also be build as a module. If so, the module will be called
 	  versal-sysmon.
-
 endmenu
