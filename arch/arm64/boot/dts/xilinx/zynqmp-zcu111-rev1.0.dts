@@ -1,0 +1,29 @@
+// SPDX-License-Identifier: GPL-2.0+
+
+#include "zynqmp-zcu111-revA.dts"
+
+/ {
+	model = "ZynqMP ZCU111 Rev1.0";
+	compatible = "xlnx,zynqmp-zcu111-rev1.0", "xlnx,zynqmp-zcu111", "xlnx,zynqmp";
+};
+
+&eeprom {
+	#address-cells = <1>;
+	#size-cells = <1>;
+
+	board_sn: board-sn@0 {
+		reg = <0x0 0x14>;
+	};
+
+	eth_mac: eth-mac@20 {
+		reg = <0x20 0x6>;
+	};
+
+	board_name: board-name@d0 {
+		reg = <0xd0 0x6>;
+	};
+
+	board_revision: board-revision@e0 {
+		reg = <0xe0 0x3>;
+	};
+};
