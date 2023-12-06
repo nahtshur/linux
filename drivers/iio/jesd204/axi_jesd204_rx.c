@@ -473,11 +473,15 @@ static irqreturn_t axi_jesd204_rx_irq(int irq, void *devid)
 		return IRQ_NONE;
 
 	writel_relaxed(0x1, jesd->base + JESD204_RX_REG_LINK_DISABLE);
+  printk("axi_jesd204_rx JESD204_RX_REG_LINK_DISABLE, val = 0x%08x\n", 0x1);
 	udelay(1);
 	writel_relaxed(0x3, jesd->base + JESD204_RX_REG_SYSREF_STATUS);
+  printk("axi_jesd204_rx JESD204_RX_REG_SYSREF_STATUS, val = 0x%08x\n", 0x3);
 	writel_relaxed(0x0, jesd->base + JESD204_RX_REG_LINK_DISABLE);
+  printk("axi_jesd204_rx JESD204_RX_REG_LINK_DISABLE, val = 0x%08x\n", 0x0);
 
 	writel(pending, jesd->base + JESD204_RX_REG_IRQ_PENDING);
+  printk("axi_jesd204_rx JESD204_RX_REG_IRQ_PENDING, val = 0x%08x\n", pending);
 
 	return IRQ_WAKE_THREAD;
 }
@@ -519,25 +523,29 @@ static int axi_jesd204_rx_apply_config(struct axi_jesd204_rx *jesd,
 
 	val = (octets_per_multiframe - 1);
 	val |= (config->octets_per_frame - 1) << 16;
-
+  printk("axi_jesd204_rx JESD204_RX_REG_LINK_CONF0, val = 0x%08x\n", val);
 	writel_relaxed(val, jesd->base + JESD204_RX_REG_LINK_CONF0);
 
 	if (jesd->version >= ADI_AXI_PCORE_VER(1, 7, 'a')) {
 		val = octets_per_multiframe / jesd->tpl_data_path_width - 1;
+    printk("axi_jesd204_rx JESD204_RX_REG_LINK_CONF4, val = 0x%08x\n", val);
 		writel_relaxed(val, jesd->base + JESD204_RX_REG_LINK_CONF4);
 	}
 
 	if (config->subclass == JESD204_SUBCLASS_0) {
 		writel_relaxed(JESD204_RX_REG_SYSREF_CONF_SYSREF_DISABLE,
 			       jesd->base + JESD204_RX_REG_SYSREF_CONF);
+    printk("axi_jesd204_rx JESD204_RX_REG_SYSREF_CONF, val = 0x%08x\n", JESD204_RX_REG_SYSREF_CONF_SYSREF_DISABLE);
 		writel_relaxed(JESD204_RX_LINK_CONF2_BUFFER_EARLY_RELEASE,
 			       jesd->base + JESD204_RX_REG_LINK_CONF2);
+    printk("axi_jesd204_rx JESD204_RX_REG_LINK_CONF2, val = 0x%08x\n", JESD204_RX_LINK_CONF2_BUFFER_EARLY_RELEASE);
 	}
 
-	if (config->sysref.lmfc_offset != JESD204_LMFC_OFFSET_UNINITIALIZED)
+	if (config->sysref.lmfc_offset != JESD204_LMFC_OFFSET_UNINITIALIZED) {
+    printk("axi_jesd204_rx JESD204_RX_REG_SYSREF_LMFC_OFFSET, val = 0x%08x\n", config->sysref.lmfc_offset);
 		writel_relaxed(config->sysref.lmfc_offset,
 			jesd->base + JESD204_RX_REG_SYSREF_LMFC_OFFSET);
-
+  }
 	return 0;
 }
 
@@ -691,8 +699,10 @@ static void axi_jesd204_rx_watchdog(struct work_struct *work)
 			restart |= axi_jesd204_rx_check_lane_status(jesd, i);
 
 		if (restart) {
+      printk("axi_jesd204_rx JESD204_RX_REG_LINK_DISABLE, val = 0x%08x\n", 0x1);
 			writel_relaxed(0x1, jesd->base + JESD204_RX_REG_LINK_DISABLE);
 			mdelay(100);
+      printk("axi_jesd204_rx JESD204_RX_REG_LINK_DISABLE, val = 0x%08x\n", 0x0);
 			writel_relaxed(0x0, jesd->base + JESD204_RX_REG_LINK_DISABLE);
 			jesd204_sysref_async_force(jesd->jdev);
 		}
@@ -706,6 +716,8 @@ static int axi_jesd204_rx_lane_clk_enable(struct clk_hw *clk)
 	struct axi_jesd204_rx *jesd =
 		container_of(clk, struct axi_jesd204_rx, dummy_clk);
 
+  printk("axi_jesd204_rx JESD204_RX_REG_SYSREF_STATUS, val = 0x%08x\n", 0x3);
+  printk("axi_jesd204_rx JESD204_RX_REG_LINK_DISABLE, val = 0x%08x\n", 0x0);
 	writel_relaxed(0x3, jesd->base + JESD204_RX_REG_SYSREF_STATUS);
 	writel_relaxed(0x0, jesd->base + JESD204_RX_REG_LINK_DISABLE);
 
@@ -720,6 +732,7 @@ static void axi_jesd204_rx_lane_clk_disable(struct clk_hw *clk)
 	struct axi_jesd204_rx *jesd =
 		container_of(clk, struct axi_jesd204_rx, dummy_clk);
 
+  printk("axi_jesd204_rx JESD204_RX_REG_LINK_DISABLE, val = 0x%08x\n", 0x11);
 	writel_relaxed(0x1, jesd->base + JESD204_RX_REG_LINK_DISABLE);
 }
 
@@ -993,6 +1006,7 @@ static int axi_jesd204_rx_jesd204_link_enable(struct jesd204_dev *jdev,
 			disable_irq(jesd->irq);
 
 		writel_relaxed(0x1, jesd->base + JESD204_RX_REG_LINK_DISABLE);
+    printk("axi_jesd204_rx JESD204_RX_REG_LINK_DISABLE, val = 0x%08x\n", 0x21);
 
 		if (__clk_is_enabled(jesd->lane_clk))
 			clk_disable_unprepare(jesd->lane_clk);
@@ -1008,6 +1022,9 @@ static int axi_jesd204_rx_jesd204_link_enable(struct jesd204_dev *jdev,
 			__func__, lnk->link_id, ret);
 		return ret;
 	}
+printk("axi_jesd204_rx JESD204_RX_REG_SYSREF_STATUS, val = 0x%08x\n", 0x33);
+printk("axi_jesd204_rx JESD204_RX_REG_LINK_DISABLE, val = 0x%08x\n", 0x30);
+
 
 	writel_relaxed(0x3, jesd->base + JESD204_RX_REG_SYSREF_STATUS);
 	writel_relaxed(0x0, jesd->base + JESD204_RX_REG_LINK_DISABLE);
@@ -1230,6 +1247,9 @@ static int axi_jesd204_rx_probe(struct platform_device *pdev)
 
 	writel_relaxed(0xff, jesd->base + JESD204_RX_REG_IRQ_PENDING);
 	writel_relaxed(0x00, jesd->base + JESD204_RX_REG_IRQ_ENABLE);
+printk("axi_jesd204_rx JESD204_RX_REG_IRQ_PENDING, val = 0x%08x\n", 0xff);
+printk("axi_jesd204_rx JESD204_RX_REG_IRQ_ENABLE, val = 0x%08x\n", 0x00);
+
 
 	INIT_DELAYED_WORK(&jesd->watchdog_work, axi_jesd204_rx_watchdog);
 
@@ -1244,6 +1264,7 @@ static int axi_jesd204_rx_probe(struct platform_device *pdev)
 		disable_irq(irq);
 
 		jesd->irq = irq;
+printk("axi_jesd204_rx JESD204_RX_REG_IRQ_ENABLE2, val = 0x%08x\n", JESD204_RX_IRQ_FRAME_ALIGNMENT_ERROR | JESD204_RX_IRQ_UNEXP_LANE_STATE_ERROR);
 		writel_relaxed(JESD204_RX_IRQ_FRAME_ALIGNMENT_ERROR |
 				JESD204_RX_IRQ_UNEXP_LANE_STATE_ERROR,
 				jesd->base + JESD204_RX_REG_IRQ_ENABLE);
@@ -1295,10 +1316,12 @@ static int axi_jesd204_rx_remove(struct platform_device *pdev)
 		of_clk_del_provider(pdev->dev.of_node);
 
 	writel_relaxed(0xff, jesd->base + JESD204_RX_REG_IRQ_PENDING);
+  printk("axi_jesd204_rx JESD204_RX_REG_IRQ_PENDING, val = 0x%08x\n", 0xff);
+
 	writel_relaxed(0x00, jesd->base + JESD204_RX_REG_IRQ_ENABLE);
-
+  printk("axi_jesd204_rx JESD204_RX_REG_IRQ_ENABLE, val = 0x%08x\n", 0x00);
 	writel_relaxed(0x1, jesd->base + JESD204_RX_REG_LINK_DISABLE);
-
+  printk("axi_jesd204_rx JESD204_RX_REG_LINK_DISABLE, val = 0x%08x\n", 0x1);
 	clk_disable_unprepare(jesd->conv2_clk);
 	clk_disable_unprepare(jesd->axi_clk);
 

@@ -32,6 +32,7 @@ static struct adxcvr_state *xcvr_to_adxcvr(struct xilinx_xcvr *xcvr)
 static inline unsigned int adxcvr_read(struct adxcvr_state *st,
 				       unsigned int reg)
 {
+  printk("adxcvr_read reg = 0x%08x, val = 0x%08x\n", reg, ioread32(st->regs + reg));
 	dev_vdbg(st->dev, "%s: reg 0x%X val 0x%X\n", __func__,
 			 reg, ioread32(st->regs + reg));
 
@@ -42,6 +43,7 @@ static inline void adxcvr_write(struct adxcvr_state *st,
 				unsigned int reg,
 				unsigned int val)
 {
+  printk("adxcvr_write reg = 0x%08x, val = 0x%08x\n", reg, val);
 	dev_vdbg(st->dev, "%s: reg 0x%X val 0x%X\n", __func__,
 			 reg, val);
 
@@ -52,7 +54,7 @@ static void adxcvr_bit_toggle_high(struct adxcvr_state *st,
 	unsigned int reg, unsigned int bit_mask)
 {
 	unsigned int val;
-
+  printk("adxcvr_bit_toggle_high reg = 0x%08x, bit_mask = 0x%08x\n", reg, bit_mask);
 	val = adxcvr_read(st, reg);
 	adxcvr_write(st, reg, val | bit_mask);
 	val &= ~bit_mask;
