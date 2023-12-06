@@ -26,6 +26,8 @@ int ad9208_register_write(ad9208_handle_t *h,
 	uint8_t inData[IN_OUT_BUFF_SZ];
 	uint8_t outData[IN_OUT_BUFF_SZ];
 
+  printk("AD9695 SPI Register Write Addr = 0x%04x, Data = 0x%02x\n", address, data);
+
 	if (h == NULL)
 		return API_ERROR_INVALID_HANDLE_PTR;
 	if (h->dev_xfer == NULL)
