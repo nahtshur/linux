@@ -78,25 +78,33 @@ EXPORT_SYMBOL_GPL(to_converter);
 
 void axiadc_write(struct axiadc_state *st, unsigned reg, unsigned val)
 {
+  printk("axiadc_write reg = 0x%08x, data = 0x%08x\n", reg, val);
 	iowrite32(val, st->regs + reg);
 }
 EXPORT_SYMBOL_GPL(axiadc_write);
 
 unsigned int axiadc_read(struct axiadc_state *st, unsigned reg)
 {
-	return ioread32(st->regs + reg);
+  unsigned val = ioread32(st->regs + reg);
+  printk("axiadc_read reg = 0x%08x, data = 0x%08x\n", reg, val);
+  return val;
+	// return ioread32(st->regs + reg);
 }
 EXPORT_SYMBOL_GPL(axiadc_read);
 
 void axiadc_slave_write(struct axiadc_state *st, unsigned reg, unsigned val)
 {
+  printk("axiadc_slave_write reg = 0x%08x, data = 0x%08x\n", reg, val);
 	iowrite32(val, st->slave_regs + reg);
 }
 EXPORT_SYMBOL_GPL(axiadc_slave_write);
 
 unsigned int axiadc_slave_read(struct axiadc_state *st, unsigned reg)
 {
-	return ioread32(st->slave_regs + reg);
+  unsigned val = ioread32(st->slave_regs + reg);
+  printk("axiadc_slave_read reg = 0x%08x, data = 0x%08x\n", reg, val);
+  return val;
+	//return ioread32(st->slave_regs + reg);
 }
 EXPORT_SYMBOL_GPL(axiadc_slave_read);
 

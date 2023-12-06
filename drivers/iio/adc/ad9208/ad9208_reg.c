@@ -56,7 +56,9 @@ int ad9208_register_read(ad9208_handle_t *h,
 	inData[0] = (((address | 0x8000) >> 8) & 0xFF);
 	inData[1] = ((address >> 0) & 0xFF);
 	err = h->dev_xfer(h->user_data, inData, outData, IN_OUT_BUFF_SZ);
+
 	if (err == 0)
+    printk("AD9695 SPI Register Read Addr = 0x%04x, Data = 0x%02x\n", address, outData[2]);
 		*data = outData[2];
 	else
 		return API_ERROR_SPI_XFER;
